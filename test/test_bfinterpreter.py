@@ -6,6 +6,7 @@ import bfinterpreter.brainfuck as bf
 
 class TestBFInterpreter(TestCase):
     def test_output(self):
+        # Outputs "Hello World!\n"
         code = """
             ++++++++++[>+++++++>++++++++++>+++>+<<<<-]
             >++.>+.+++++++..+++.>++.<<+++++++++++++++.
@@ -16,17 +17,17 @@ class TestBFInterpreter(TestCase):
 
         bf.evaluate(code, outstream=outstream)
 
-        # todo: Determine when the \n appears and how to handle reliably
         self.assertEqual("Hello World!\n", outstream.getvalue())
 
     def test_input_output(self):
-        code = ",++."
+        # Reads two input chars and outputs them incremented by two
+        code = ",++>,++<.>."
 
         instream = io.StringIO()
-        instream.write('a')
+        instream.write('axNOTUSED')
         instream.seek(0)
         outstream = io.StringIO()
 
         bf.evaluate(code, instream=instream, outstream=outstream)
 
-        self.assertEqual('c', outstream.getvalue())
+        self.assertEqual('cz', outstream.getvalue())
