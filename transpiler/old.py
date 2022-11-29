@@ -1,12 +1,5 @@
-#import regex as re
+import re
 
-
-def kcuf(code):
-    return Translator().translate(code)
-
-# If printing the code is annoying or a waste of your bandwith (~220 KB for final test).
-# Please uncomment the following line.
-# NOPRINT = True
 
 class Var:
     def __init__(self, name, size=1):
@@ -35,7 +28,6 @@ class Translator:
                     continue
                 raise RuntimeError()
             return vars
-
 
     def __init__(self):
         self._generator = BrainfuckGenerator()
@@ -123,7 +115,6 @@ class BrainfuckGenerator:
             r += "[-]" + "+" * v
             return r
 
-
     class VarTable:
         _MIN = 0
         _MAX = 1024
@@ -169,7 +160,6 @@ class BrainfuckGenerator:
 
         def pos(self, varname):
             return self._vars[varname][0]
-
 
     def __init__(self):
         self._program = ""
