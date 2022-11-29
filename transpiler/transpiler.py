@@ -1,5 +1,6 @@
+from transpiler.old import Translator
 
 
 class Transpiler:
     def transpile(self, code):
-        return ""
+        return Translator().translate(code)

@@ -67,7 +67,7 @@ class Translator:
 
     def _interpret(self, line):
         # Strip comments
-        code_str = line.split('//', 1)[0].split('--', 1)[0].split('#', 1)[0]
+        code_str = line.split('//', 1)[0].split('--', 1)[0].split('#', 1)[0].strip()
         instr_str, _, args_str = code_str.partition(" ")
         instr_str = instr_str.lower()
 
