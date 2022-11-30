@@ -1,7 +1,7 @@
 from unittest import TestCase
 import io
 
-from transpiler.transpiler import Transpiler
+from transpiler.transpiler import transpile
 import bfinterpreter.brainfuck as bf
 
 
@@ -13,7 +13,7 @@ class TestTranspilerBasicFunctionality(TestCase):
 
         outstream = io.StringIO()
 
-        bf.evaluate(Transpiler().transpile(code), instream=instream, outstream=outstream)
+        bf.evaluate(transpile(code), instream=instream, outstream=outstream)
 
         self.assertEqual(required_output, outstream.getvalue())
 
