@@ -1,4 +1,4 @@
-from transpiler.old import Translator
+from old import Translator
 
 
 class Transpiler:
