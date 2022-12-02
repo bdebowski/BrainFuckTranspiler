@@ -14,102 +14,42 @@ instr_prefix = set(list(map(chr, range(ord('a'), ord('z') + 1))) + list(map(chr,
 comment_prefix = {'#', '/', '-'}
 
 
-class Section:
-    def __init__(self, name, end: callable):
-        self._end = end
-        self.text = ""
-        self.name = name
-
-    def read(self, code: str) -> str:
-        i = 0
-        while i < len(code) and not self._end(code[i:]):
-            self.text += code[i]
-            i += 1
-        return code[i:]
+class Section(Enum):
+    CODE = 1
+    COMMENT = 2
+    WHITE_SPACE = 3
 
 
-comment_section = Section("Comment", lambda x: x[0] == '\n')
-whitespace_section = Section("WhiteSpace", lambda x: x[0] in instr_prefix or x[0] == '#' or x.startswith('//') or x.startswith('--'))
-code_section = Section("Code", lambda x: x[0] == '#' or x.startswith('//') or x.startswith('--'))
+def read(end: callable, code: str) -> (str, str):
+    sec_text = ""
+    i = 0
+    while i < len(code) and not end(code[i:]):
+        sec_text += code[i]
+        i += 1
+    return sec_text, code[i:]
+
+
+comment_section_end = lambda x: x[0] == '\n'
+whitespace_section_end = lambda x: x[0] in instr_prefix or x[0] == '#' or x.startswith('//') or x.startswith('--')
+code_section_end = lambda x: x[0] == '#' or x.startswith('//') or x.startswith('--') or x[0] == '\n'
 
 
 def parse(code):
     sections = []
-    section = comment_section
+    section_end = whitespace_section_end
+    section = Section.WHITE_SPACE
     while code:
-        code = section.read(code)
-        sections.append(section.text)
-        section.text = ""
+        sec_text, code = read(section_end, code)
+        if section is Section.CODE:
+            sections.append(sec_text)
         if code.startswith('#') or code.startswith('//') or code.startswith('--'):
-            section = comment_section
+            section_end = comment_section_end
+            section = Section.COMMENT
         elif code[:1] in whitespace:
-            section = whitespace_section
+            section_end = whitespace_section_end
+            section = Section.WHITE_SPACE
         else:
-            section = code_section
+            section_end = code_section_end
+            section = Section.CODE
     return sections
 
-
-"""
-class Section(Enum):
-    WHITE_SPACE = 1
-    COMMENT = 2
-    CODE_BLOCK = 3
-
-
-class CodeSection(Enum):
-    SEP = 1
-    INSTR = 2
-    ARG = 3
-
-
-def parse(code: str):
-    instructions = []
-    section = Section.WHITE_SPACE
-    code_section = None
-    i = 0
-    while i < len(code):
-        c = code[i]
-
-        if section == Section.WHITE_SPACE:
-            if c in whitespace:
-                i += 1
-                continue
-            if c == '#':
-                section = Section.COMMENT
-            elif c == '/':
-                try:
-                    if code[i+1] == '/':
-                        section = Section.COMMENT
-                    else:
-                        raise RuntimeError("Invalid")
-                except IndexError:
-                    raise RuntimeError("Invalid")
-            elif c == '-':
-                try:
-                    if code[i+1] == '-':
-                        section = Section.COMMENT
-                    else:
-                        raise RuntimeError("Invalid")
-                except IndexError:
-                    raise RuntimeError("Invalid")
-            elif c == 'r':
-                try:
-                    if code[i:i+3] == "rem" and code[i+3] in whitespace:
-                        section = Section.COMMENT
-                    elif code[i:i+4] == "read" and code[i+4] in whitespace:
-                        section = Section.CODE_BLOCK
-                        code_section = CodeSection.INSTR
-                        instructions.append([c, []])
-                    else:
-                        raise RuntimeError("Invalid")
-                except IndexError:
-                    raise RuntimeError("Invalid")
-            elif c in
-
-        elif section == Section.COMMENT:
-            pass
-
-        else:   # CODE_BLOCK
-            pass
-        i += 1
-"""
