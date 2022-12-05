@@ -1,55 +1,67 @@
-from enum import Enum
-
-# code block: condition, loop, proc_def, sequence
-#   instr: var, set, add, sub, inc, dec, mul, divmod, div, mod, cmp, a2b, b2a, lset, lget, ifeq, ifneq, wneq, proc, call, end, read, msg
-#   arg: varname, literal (string, char, number), [, ]
-#   sep: whitespace
-# comment
-# white space
-
-whitespace = {' ', '\t', '\n'}
-digit = set(range(10))
-var_prefix = set(['$', '_'] + list(map(chr, range(ord('a'), ord('z') + 1))) + list(map(chr, range(ord('A'), ord('Z') + 1))))
-instr_prefix = set(list(map(chr, range(ord('a'), ord('z') + 1))) + list(map(chr, range(ord('A'), ord('Z') + 1))))
-comment_prefix = {'#', '/', '-'}
+import io
+import re
+from typing import Iterable, List
 
 
-class Section(Enum):
-    CODE = 1
-    COMMENT = 2
-    WHITE_SPACE = 3
+def tokenize(code: io.TextIOBase) -> Iterable[List[str]]:
+    """
+    Reads the code as an io stream line by line.
+    Skips/Ignores comments and whitespaces.
+    Returns an iterable of [instr, arg0, arg1, ...] lists.
+    Detects various syntax errors and raises RuntimeError on each.
+    """
+    
+    instruction_words = ("var", "set", "add", "sub", "inc", "dec", "mul", "divmod", "div", "mod", "cmp", "a2b", "b2a", "lset", "lget", "ifeq", "ifneq", "wneq", "proc", "call", "end", "read", "msg")
+    instr_words_pattern = '|'.join(instruction_words)
+    char_element_pattern = r"[^\'\"\\]|\\\\|\\\'|\\\"|\\n|\\r|\\t"
+    char_pattern = fr"\'({char_element_pattern})\'"
+    str_pattern = fr"\"({char_element_pattern})*\""
+    var_name_pattern = r"[$_a-zA-Z][$_a-zA-Z\d]*"
+    
+    for line_num, line in enumerate(code, start=1):
+        # Detect and skip empty lines and 'rem' comment lines
+        line = line.lstrip()
+        if not line or re.match(r"rem\s", line, flags=re.IGNORECASE):
+            continue
 
+        # Extract the instruction
+        m = re.match(fr"({instr_words_pattern})(\s|--|#|//|$)", line, flags=re.IGNORECASE)
+        if not m:
+            raise RuntimeError("Line {}: Invalid instruction or syntax \'{}\'".format(line_num, line))
+        instr = m.group(1).lower()
+        instr_and_args = [instr]
+        line = line[len(instr):].lstrip()
 
-def read(end: callable, code: str) -> (str, str):
-    sec_text = ""
-    i = 0
-    while i < len(code) and not end(code[i:]):
-        sec_text += code[i]
-        i += 1
-    return sec_text, code[i:]
-
-
-comment_section_end = lambda x: x[0] == '\n'
-whitespace_section_end = lambda x: x[0] in instr_prefix or x[0] == '#' or x.startswith('//') or x.startswith('--')
-code_section_end = lambda x: x[0] == '#' or x.startswith('//') or x.startswith('--') or x[0] == '\n'
-
-
-def parse(code):
-    sections = []
-    section_end = whitespace_section_end
-    section = Section.WHITE_SPACE
-    while code:
-        sec_text, code = read(section_end, code)
-        if section is Section.CODE:
-            sections.append(sec_text)
-        if code.startswith('#') or code.startswith('//') or code.startswith('--'):
-            section_end = comment_section_end
-            section = Section.COMMENT
-        elif code[:1] in whitespace:
-            section_end = whitespace_section_end
-            section = Section.WHITE_SPACE
-        else:
-            section_end = code_section_end
-            section = Section.CODE
-    return sections
-
+        # Extract instruction args
+        while line and not re.match(r"#|//|--", line):
+            # Extract string
+            m = re.match(fr"({str_pattern})(\s|--|#|//|{var_name_pattern}|$)", line)
+            if m:
+                arg = m.group(1)
+                instr_and_args.append(arg)
+                line = line[len(arg):].lstrip()
+                continue
+            # Extract char
+            m = re.match(fr"({char_pattern})(\s|--|#|//|$)", line)
+            if m:
+                arg = m.group(1)
+                instr_and_args.append(arg)
+                line = line[len(arg):].lstrip()
+                continue
+            # Extract number
+            m = re.match(r"(-?\d+)(\s|--|#|//|$)", line)
+            if m:
+                arg = m.group(1)
+                instr_and_args.append(arg)
+                line = line[len(arg):].lstrip()
+                continue
+            # Extract variable
+            m = re.match(fr"({var_name_pattern}(\s*\[\s*\d+\s*])?)(\s|--|#|//|{str_pattern}|$)", line)
+            if m:
+                arg = m.group(1).lower()
+                instr_and_args.append(arg)
+                line = line[len(arg):].lstrip()
+                continue
+            # No matches above therefore error
+            raise RuntimeError("Line {}: Invalid args or syntax \'{}\'".format(line_num, line))
+        yield instr_and_args
