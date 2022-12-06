@@ -1,6 +1,6 @@
 import io
 import re
-from typing import Iterable, List, Generator, Iterator
+from typing import List, Generator, Iterator, Dict
 from dataclasses import dataclass, field
 
 
@@ -76,16 +76,61 @@ class Node:
     children: List['Node'] = field(default_factory=list)
 
 
-def build_ast_vartable_proctable(instrs_and_args: Iterator[List[str]]) -> Node:
-    # todo: var table and procedure table
-    root = Node("", [])
+class VarTable:
+    def __init__(self, start_index=0):
+        self._ctr = start_index
+        self.vars = dict()
+
+    def add(self, varname, size=1):
+        self.vars[varname] = self._ctr
+        self._ctr += size
+
+    def add_from_args(self, instr_args: List[str]):
+        for arg in instr_args:
+            if '[' in arg:
+                varname = re.match(r"[$_a-zA-Z][$_a-zA-Z\d]*", arg).group(0)
+                size = int(re.match(r".+\s*\[\s*(\d+)", arg).group(1))
+                self.add(varname, size=size)
+            else:
+                self.add(arg)
+
+
+@dataclass
+class Procedure:
+    name: str
+    args: List[str]
+    ast: Node
+
+
+def parse(instrs_and_args: Iterator[List[str]], root=None, var_table: VarTable = None, proc_table: Dict[str, Procedure] = None) -> Node:
+    """
+    Parses the token stream of instructions and their args into an Abstract Syntax Tree.
+    Variables are added to the provided VarTable (and not to the AST).
+    Procedure definitions are added to the provided proc_table, with each procedure being parsed as an AST.
+    Returns the root of the AST.
+    """
+    if not root:
+        root = Node("", [])
+
     parent = root
     for instr_and_args in instrs_and_args:
         instr = instr_and_args[0]
         args = instr_and_args[1:]
+
         if instr == "end":
+            if parent.instr == "proc":
+                return root
             parent = parent.parent
             continue
+
+        if instr == 'proc':
+            proc_table[args[0]] = Procedure(args[0], args[1:], parse(instrs_and_args, root=Node("proc", [])))
+            continue
+
+        if instr == 'var':
+            var_table.add_from_args(args)
+            continue
+
         node = Node(instr, args, parent=parent)
         parent.children.append(node)
         if instr == "ifeq" or instr == "ifneq" or instr == "wneq":
