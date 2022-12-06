@@ -22,18 +22,18 @@ proc Foo a b
     set b a
     call Bar
 end
-proc Bar
-    msg "hey"
+proc Bar a
+    msg "hey" a
 end
 
 Output:
-var x var l[5] i read x msg "Bye" x wneq i 5 lset l i 1 inc i 1 ifeq i 3 set x 1 call foo x i end end proc foo a b set b a call bar end proc bar msg "hey" end
+var x var l[5] i read x msg "Bye" x wneq i 5 lset l i 1 inc i 1 ifeq i 3 set x 1 call foo x i end end proc foo a b set b a call bar end proc bar msg "hey" a end
 
 
 2. Create symbol table and procedure table
 
 Input:
-var x var l[5] i read x msg "Bye" x wneq i 5 lset l i 1 inc i 1 ifeq i 3 set x 1 call foo x i end end proc foo a b set b a call bar end proc bar msg "hey" end
+var x var l[5] i read x msg "Bye" x wneq i 5 lset l i 1 inc i 1 ifeq i 3 set x 1 call foo x i end end proc foo a b set b a call bar end proc bar msg "hey" a end
 
 Output:
 Symbol Table (first 10 indices for temp vars)
@@ -45,7 +45,7 @@ i   16
 Procedure Table
 ===============
 foo a b     set b a call bar
-bar         msg "hey"
+bar a       msg "hey" a
 
 Code
 ====
@@ -71,10 +71,10 @@ read x      msg "Bye" x     wneq i 5
                             set x 1     call foo x i
                                         |
                             +-----------+
-                            set i x     call bar
+                            set i x     call bar x
                                         |
                                         +
-                                        msg "hey"
+                                        msg "hey" x
 
 
 4. Generate intermediate code
@@ -84,13 +84,13 @@ read x      msg "Bye" x     wneq i 5
 Input: AST
 
 Output:
-x , t0 ='B' . ='y' . ='e' . =x . i -5 [ +5 l[i] =1 i +1 t0 =0 i -3 [ t0 -1 i +3 t1 =0 ] t0 +1 [ i +3 x =1 i =x t0 ='h' . ='e' . ='y' . t0 =0 ] i -5 ] +5
+x , t0 ='B' . ='y' . ='e' . =x . i -5 [ +5 l[i] =1 i +1 t0 =0 i -3 [ t0 -1 i +3 t1 =0 ] t0 +1 [ i +3 x =1 i =x t0 ='h' . ='e' . ='y' . x . t0 =0 ] i -5 ] +5
 
 5. Replace var names and assignments with true brainfuck operators
 - Track datatape pointer location and datatape state (values)
 
 Input: Symbol table, datatape_ptr, datatape
-x , t0 ='B' . ='y' . ='e' . =x . i -5 [ +5 l[i] =1 i +1 t0 =0 i -3 [ t0 -1 i +3 t1 =0 ] t0 +1 [ i +3 x =1 i =x t0 ='h' . ='e' . ='y' . t0 =0 ] i -5 ] +5
+x , t0 ='B' . ='y' . ='e' . =x . i -5 [ +5 l[i] =1 i +1 t0 =0 i -3 [ t0 -1 i +3 t1 =0 ] t0 +1 [ i +3 x =1 i =x t0 ='h' . ='e' . ='y' . x . t0 =0 ] i -5 ] +5
 
 Output:
 >(10),<+(66).+(55).-(20).   ....
