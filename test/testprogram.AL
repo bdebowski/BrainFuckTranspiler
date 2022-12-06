@@ -13,8 +13,8 @@ wneq I 5
 end
 proc Foo a b
     set b a
-    call Bar
+    call Bar a
 end
-proc Bar
-    msg "hey"
+proc Bar a
+    msg "hey" a
 end

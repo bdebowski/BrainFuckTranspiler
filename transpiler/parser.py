@@ -136,3 +136,24 @@ def parse(instrs_and_args: Iterator[List[str]], root=None, var_table: VarTable =
         if instr == "ifeq" or instr == "ifneq" or instr == "wneq":
             parent = node
     return root
+
+
+def inline(ast: Node, proc_table: Dict[str, Procedure], replace_vars: Dict[str, str] = None):
+    """
+    Replaces all 'call <proc_name> <args>*' instances in the AST with the corresponding procedure's AST.
+    """
+    if replace_vars:
+        for i in range(len(ast.args)):
+            arg = ast.args[i]
+            if arg in replace_vars:
+                ast.args[i] = replace_vars[arg]
+    if ast.instr == 'call':
+        proc = proc_table[ast.args[0]]
+        for child in proc.ast.children:
+            ast.children.append(child)
+            child.parent = ast
+            inline(child, proc_table, replace_vars={key: val for key, val in zip(proc.args, ast.args[1:])})
+        return
+    for child in ast.children:
+        inline(child, proc_table, replace_vars=replace_vars)
+    return
