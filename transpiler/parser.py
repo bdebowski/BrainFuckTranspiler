@@ -1,9 +1,10 @@
 import io
 import re
-from typing import Iterable, List
+from typing import Iterable, List, Generator, Iterator
+from dataclasses import dataclass, field
 
 
-def tokenize(code: io.TextIOBase) -> Iterable[List[str]]:
+def tokenize(code: io.TextIOBase) -> Generator[List[str], None, None]:
     """
     Reads the code as an io stream line by line.
     Skips/Ignores comments and whitespaces.
@@ -65,3 +66,28 @@ def tokenize(code: io.TextIOBase) -> Iterable[List[str]]:
             # No matches above therefore error
             raise RuntimeError("Line {}: Invalid args or syntax \'{}\'".format(line_num, line))
         yield instr_and_args
+
+
+@dataclass
+class Node:
+    instr: str
+    args: List[str]
+    parent: 'Node' = None
+    children: List['Node'] = field(default_factory=list)
+
+
+def build_ast_vartable_proctable(instrs_and_args: Iterator[List[str]]) -> Node:
+    # todo: var table and procedure table
+    root = Node("", [])
+    parent = root
+    for instr_and_args in instrs_and_args:
+        instr = instr_and_args[0]
+        args = instr_and_args[1:]
+        if instr == "end":
+            parent = parent.parent
+            continue
+        node = Node(instr, args, parent=parent)
+        parent.children.append(node)
+        if instr == "ifeq" or instr == "ifneq" or instr == "wneq":
+            parent = node
+    return root
