@@ -1,46 +1,42 @@
-from transpiler.old import Translator
+from io import StringIO
+
+from transpiler.parser import *
 
 
-def transpile(code):
-    return Translator().translate(code)
+def print_ast(ast: Node):
+    #print("{} {}".format(ast.instr, ' '.join(ast.args)))
+    #for child in ast.children:
+    #    print_ast(child)
+    print(create_intermediate_bf(ast))
 
 
-def clean_and_normalize(code: str) -> str:
-    """
-    - Remove comments
-    - Remove white space except for single space between tokens
-    - Convert to lowercase (except string contents)
-    """
-    def remove_inline_comment_and_lower_case(code_line):
-        in_str = False
-        lower_cased = ""
-        partial_line = ""
-        for i in range(len(code_line)):
-            partial_line += code_line[i]
+def create_intermediate_bf(ast: Node) -> [str]:
+    def visit(code: [str], node: Node):
+        new_code = []
+        for child in node.children:
+            new_code += visit(code, child)
+        return codify(new_code, node)
 
-            if code_line[i] == '"':
-                in_str = not in_str
-                if in_str:
-                    partial_line = partial_line.lower()
-                lower_cased += partial_line
-                partial_line = ""
+    def codify(code: [str], node: Node):
+        if node.instr == "call" or node.instr == '':
+            return code
+        if node.instr == "ifeq" or node.instr == "ifneq" or node.instr == "wneq":
+            return [node.instr, *node.args, '['] + code + [']']
+        return code + [node.instr, *node.args]
 
-            if not in_str:
-                if code_line[i] == '/' and code_line[i-1] == '/':
-                    return lower_cased + partial_line[:-2].lower()
-                if code_line[i] == '-' and code_line[i-1] == '-':
-                    return lower_cased + partial_line[:-2].lower()
-                if code_line[i] == '#':
-                    return lower_cased + partial_line[:-1].lower()
+    return visit([], ast)
 
-        return lower_cased + partial_line.lower()
 
-    tokens = []
-    for line in code.split('\n'):
-        # Remove whole line comments
-        if line.lstrip().lower().startswith("rem"):
-            continue
-        # Remove inline comments (if any), convert to lowercase, remove leading and trailing white space, and split into tokens
-        tokens += remove_inline_comment_and_lower_case(line).strip().split()
+def transpile(code: str) -> str:
+    var_table = VarTable()
+    proc_table = {}
+    ast = parse(tokenize(StringIO(code)), var_table=var_table, proc_table=proc_table)
+    inline(ast, proc_table)
 
-    return ' '.join(tokens)
+    print("Var Table:")
+    for k, v in var_table.vars.items():
+        print("{} {}".format(k, v))
+    print()
+
+    print_ast(ast)
+
