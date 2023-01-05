@@ -80,10 +80,24 @@ class VarTable:
     def __init__(self, start_index=0):
         self._ctr = start_index
         self.vars = dict()
+        self._temp_var_index = 0
 
     def add(self, varname, size=1):
         self.vars[varname] = self._ctr
         self._ctr += size
+
+    def push_temp(self) -> str:
+        var_name = "__t{}__".format(self._temp_var_index)
+        self._temp_var_index += 1
+        self.vars[var_name] = 0
+        return var_name
+
+    def pop_temp(self):
+        if self._temp_var_index == 0:
+            raise RuntimeError("temp var stack already empty")
+        self._temp_var_index -= 1
+        var_name = "__t{}__".format(self._temp_var_index)
+        self.vars.pop(var_name)
 
     def add_from_args(self, instr_args: List[str]):
         for arg in instr_args:

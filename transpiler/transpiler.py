@@ -10,14 +10,14 @@ def print_ast(ast: Node):
     print(create_intermediate_bf(ast))
 
 
-def create_intermediate_bf(ast: Node) -> [str]:
-    def visit(code: [str], node: Node):
+def create_intermediate_bf(ast: Node, var_table: VarTable) -> [str]:
+    def visit(code: [str], node: Node, var_table):
         new_code = []
         for child in node.children:
-            new_code += visit(code, child)
-        return codify(new_code, node)
+            new_code += visit(code, child, var_table)
+        return codify(new_code, node, var_table)
 
-    def codify(code: [str], node: Node):
+    def codify(code: [str], node: Node, var_table: VarTable):
         if node.instr == "call" or node.instr == '':
             return code
         if node.instr == "ifeq" or node.instr == "ifneq" or node.instr == "wneq":
